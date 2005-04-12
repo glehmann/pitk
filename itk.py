@@ -144,15 +144,19 @@ class _ItkClass :
 			setattr(self, attrib, _ItkClassType(name, t, funcs))
 			
 	def __getitem__(self, key) :
-		return getattr(self, _manageDigit(key))
-	
-	def __call__(self, *keys) :
-		return getattr(self, _manageDigit("".join(map(str,keys))))
+		return getattr(self, _manageDigit(self.__seq2str__(key)))
+
+	# we don't use staticmethod to be able to mask the method
+	def __seq2str__(self, seq) :
+		if not isinstance(seq, str) and hasattr(seq, '__getitem__') :
+			return "".join([self.__seq2str__(e) for e in seq])
+		else :
+			return str(seq) 
 	
 	def __repr__(self) :
 		return '<itk class itk.%s>' % self.__name__
 
-
+			
 def _manageDigit(key) :
 	# to allow usage of numbers
 	key = str(key)

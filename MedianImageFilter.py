@@ -14,18 +14,18 @@ print 'modules loaded'
 #
 # Types and dimension can come from command line. It can't be easily done in C++.
 # we should just do :
-# dim = argv[4]
+# dim = int(argv[4])
 # outPType = inPType = argv[5]
 # 
 dim = 2
 outPType = inPType = 'UC'
-inType = inPType + str(dim)
-outType = outPType + str(dim)
+inType = (inPType, dim)
+outType = (outPType, dim)
 
 # use type to instanciate reader, writer and filter
 reader = itk.ImageFileReader[inType].New()
 writer = itk.ImageFileWriter[outType].New()
-filter  = itk.MedianImageFilter[inType+outType].New()
+filter  = itk.MedianImageFilter[inType, outType].New()
 
 filter.SetInput( reader.GetOutput() )
 writer.SetInput( filter.GetOutput() )
