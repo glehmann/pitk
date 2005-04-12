@@ -20,84 +20,114 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-
 import InsightToolkit as _InsightToolkit
-
 
 
 def _initDict() :
 	"""
 	select attributes of InsightToolkit an split it in groups :
-	+ fDict : a dict. Key is class name without itk prefix. Values are avaible type names for this class.
-	+ noType : a list. Each element is a class name without itk prefix. Class in this list don't have (recognized) extra types
+	+ typeDict : a dict. Key is class name without itk prefix. Values are dict with type as name and array of function name as value.
+	+ noTypeDict : a dict. Key is a class name without itk prefix. Values are arrays of function names.
 	+ nonItk : everything non prefixed with itk or vnl
-	+ vnl : everything which begins with vnl
+	+ vnl : everything which begins with vnl (without vnl prefix)
 	"""
 	import re
 	classes = []	# stores classes with types. Types will be isolated later.
 	noType = []
 	nonItk = []
 	vnl = []
-	noNew = []
 	
 	# compile regexp which will be used to find itk classes with types.
-	typeRegexp = re.compile(r'^itk([a-zA-Z0-9]+?[a-z])([A-Z]*[0-9][A-Z0-9]*)_New$')
+	typeRegexp = re.compile(r'^itk([a-zA-Z0-9]+?[a-z])([A-Z]*[0-9][A-Z0-9]*)(_.*$|Ptr)')
+	# classes without type
+	noTypeRegexp = re.compile(r'^itk([a-zA-Z0-9]+?[a-z])(_.*$|Ptr)')
 	
 	for f in dir(_InsightToolkit) :
 		if f.startswith('itk') :
-			# we keep only attribute which ends with _New. 
-			# we skip superclass attributes. It may be used in the future
-			if f.endswith('_New') and '_Superclass' not in f :
-				res = typeRegexp.findall(f)
-				if res != [] :
-					# regexp matched something. Add it to classes
-					classes.append(res[0])
-				else :
-					# regexp don't match, but attribute starts with itk
-					# add it to noType
-					# [3:-4] == [len('itk'):-len('_New')]
-					noType.append(f[3:-4])
-			else :
-				# [3:] == [len('itk'):]
-				noNew.append(f[3:])
+			typeRes = typeRegexp.findall(f)
+			noTypeRes = noTypeRegexp.findall(f)
+			if typeRes != [] :
+				# type found
+				classes.append(typeRes[0])
+			elif noTypeRes != [] :
+				# no type found
+				noType.append(noTypeRes[0])
 		else :
-			if f.startswith("vnl") :
-				# [3:] == [len('vnl'):]
-				vnl.append(f[3:])
+			if f.startswith("vnl_") :
+				# [4:] == [len('vnl_'):]
+				vnl.append(f[4:])
 			else :
-				# attrib don't start with itk or vnl
+				# attrib don't start with itk or vnl_
 				nonItk.append(f)
 				
 	# now, generate dict which contains classes with types
-	fDict = {}
-	for f, t in classes :
-		if not fDict.has_key(f) :
-			fDict[f] = []
-		fDict[f].append(t)
+	typeDict = {}
+	for c, t, func in classes :
+		if not typeDict.has_key(c) :
+			typeDict[c] = {}
+		if not typeDict[c].has_key(t) :
+			typeDict[c][t] = []
+		typeDict[c][t].append(func)
+	
+	# dict which contains classes without type
+	noTypeDict = {}
+	for c, func in noType :
+		if typeDict.has_key(c) :
+			# print "name collision : %s" % c
+			pass
+		else :
+			if not noTypeDict.has_key(c) :
+				noTypeDict[c] = []
+			noTypeDict[c].append(func)
+	
 		
 	# finally, return values :)
-	return (fDict, noType, nonItk, vnl, noNew)
+	return (typeDict, noTypeDict, nonItk, vnl)
 
 class _ItkClassType :
-	def __init__(self, name, t) :
+	"""
+	this class gives functions avaible for a given type of a given class
+	"""
+	def __init__(self, name, t, funcs) :
 		self.__name__ = name
 		self.__type__ = t
-		attribs = [f[3+len(name)+len(t)+1:] for f in _InsightToolkit.__dict__ if f.startswith('itk%s%s_' % (name, t)) and '_Superclass' not in f]
-		for attrib in attribs :
-			function = getattr(_InsightToolkit, 'itk%s%s_%s' % (name, t, attrib))
+		self.__function__ = getattr(_InsightToolkit, 'itk%s%s' % (name, t))
+		for func in funcs :
+			# attribute name must not have _ prefix
+			if func[0] == '_' :
+				attrib = func[1:]
+			else :
+				attrib = func
+			function = getattr(_InsightToolkit, 'itk%s%s%s' % (name, t, func))
+			# add method
 			setattr(self, attrib, function)
+	
+	def __call__(self, *args, **kargs) :
+		# some types needs to be callable (types without New() method)
+		# as it don't seem to be a problem, make all types callable
+		return self.__function__(*args, **kargs)
 	
 	def __repr__(self) :
 		return '<itk class type itk.%s<%s>>' % (self.__name__, self.__type__)
 
 		
 class _ItkClassNoType :
-	def __init__(self, name) :
+	"""
+	this class manage access to functions of classes without types
+	"""
+	def __init__(self, name, funcs) :
 		self.__name__ = name
-		attribs = [f[3+len(name)+1:] for f in _InsightToolkit.__dict__ if f.startswith('itk%s_' % name) and '_Superclass' not in f]
-		for attrib in attribs :
-			function = getattr(_InsightToolkit, 'itk%s_%s' % (name, attrib))
+		self.__function__ = getattr(_InsightToolkit, 'itk%s' % name)
+		for func in funcs :
+			if func[0] == '_' :
+				attrib = func[1:]
+			else :
+				attrib = func
+			function = getattr(_InsightToolkit, 'itk%s%s' % (name, func))
 			setattr(self, attrib, function)
+	
+	def __call__(self, *args, **kargs) :
+		return self.__function__(*args, **kargs)
 	
 	def __repr__(self) :
 		return '<itk class no type itk.%s>' % self.__name__
@@ -109,9 +139,9 @@ class _ItkClass :
 	"""
 	def __init__(self, name, types) :
 		self.__name__ = name
-		for t in types :
+		for t, funcs in types.iteritems() :
 			attrib = _manageDigit(t)
-			setattr(self, attrib, _ItkClassType(name, t))
+			setattr(self, attrib, _ItkClassType(name, t, funcs))
 			
 	def __getitem__(self, key) :
 		return getattr(self, _manageDigit(key))
@@ -132,14 +162,13 @@ def _manageDigit(key) :
 	return key
 
 
-(_fDict, _noType, _nonItk, _vnl, _noNew) = _initDict()
+(_typeDict, _noTypeDict, _nonItk, _vnl) = _initDict()
 
-for _name, _types in _fDict.iteritems() :
+for _name, _types in _typeDict.iteritems() :
 	exec '%s = _ItkClass(_name, _types)' % _name
 
-for _name in _noType :
-	exec '%s = _ItkClassNoType(_name)' % _name
+for _name, _funcs in _noTypeDict.iteritems() :
+	exec '%s = _ItkClassNoType(_name, _funcs)' % _name
 	
 # for _name in _nonItk :
 # 	exec '%s = _InsightToolkit.%s' % (_name, _name)
-	
