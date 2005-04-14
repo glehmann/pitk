@@ -20,10 +20,10 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-import InsightToolkit as _InsightToolkit
+import InsightToolkit
 
 
-def _initDict() :
+def initDict() :
 	"""
 	select attributes of InsightToolkit an split it in groups :
 	+ typeDict : a dict. Key is class name without itk prefix. Values are dict with type as name and array of function name as value.
@@ -42,7 +42,7 @@ def _initDict() :
 	# classes without type
 	noTypeRegexp = re.compile(r'^itk([a-zA-Z0-9]+?[a-z])(_.*$|Ptr)')
 	
-	for f in dir(_InsightToolkit) :
+	for f in dir(InsightToolkit) :
 		if f.startswith('itk') :
 			typeRes = typeRegexp.findall(f)
 			noTypeRes = noTypeRegexp.findall(f)
@@ -84,21 +84,21 @@ def _initDict() :
 	# finally, return values :)
 	return (typeDict, noTypeDict, nonItk, vnl)
 
-class _ItkClassType :
+class ItkClassType :
 	"""
 	this class gives functions avaible for a given type of a given class
 	"""
 	def __init__(self, name, t, funcs) :
 		self.__name__ = name
 		self.__type__ = t
-		self.__function__ = getattr(_InsightToolkit, 'itk%s%s' % (name, t))
+		self.__function__ = getattr(InsightToolkit, 'itk%s%s' % (name, t))
 		for func in funcs :
 			# attribute name must not have _ prefix
 			if func[0] == '_' :
 				attrib = func[1:]
 			else :
 				attrib = func
-			function = getattr(_InsightToolkit, 'itk%s%s%s' % (name, t, func))
+			function = getattr(InsightToolkit, 'itk%s%s%s' % (name, t, func))
 			# add method
 			setattr(self, attrib, function)
 	
@@ -111,19 +111,19 @@ class _ItkClassType :
 		return '<itk class type itk.%s<%s>>' % (self.__name__, self.__type__)
 
 		
-class _ItkClassNoType :
+class ItkClassNoType :
 	"""
 	this class manage access to functions of classes without types
 	"""
 	def __init__(self, name, funcs) :
 		self.__name__ = name
-		self.__function__ = getattr(_InsightToolkit, 'itk%s' % name)
+		self.__function__ = getattr(InsightToolkit, 'itk%s' % name)
 		for func in funcs :
 			if func[0] == '_' :
 				attrib = func[1:]
 			else :
 				attrib = func
-			function = getattr(_InsightToolkit, 'itk%s%s' % (name, func))
+			function = getattr(InsightToolkit, 'itk%s%s' % (name, func))
 			setattr(self, attrib, function)
 	
 	def __call__(self, *args, **kargs) :
@@ -133,18 +133,18 @@ class _ItkClassNoType :
 		return '<itk class no type itk.%s>' % self.__name__
 
 
-class _ItkClass :
+class ItkClass :
 	"""
 	This class manage access to avaible types
 	"""
 	def __init__(self, name, types) :
 		self.__name__ = name
 		for t, funcs in types.iteritems() :
-			attrib = _manageDigit(t)
-			setattr(self, attrib, _ItkClassType(name, t, funcs))
+			attrib = self.__manageDigit__(t)
+			setattr(self, attrib, ItkClassType(name, t, funcs))
 			
 	def __getitem__(self, key) :
-		return getattr(self, _manageDigit(self.__seq2str__(key)))
+		return getattr(self, self.__manageDigit__(self.__seq2str__(key)))
 
 	# we don't use staticmethod to be able to mask the method
 	def __seq2str__(self, seq) :
@@ -153,26 +153,32 @@ class _ItkClass :
 		else :
 			return str(seq) 
 	
+	def __manageDigit__(self, key) :
+	    # to allow usage of numbers
+	    key = str(key)
+	    # number attributes must be avaible without _ prefix
+	    if key.isdigit() :
+		key = '_%s' % key
+	    return key
+
 	def __repr__(self) :
 		return '<itk class itk.%s>' % self.__name__
 
 			
-def _manageDigit(key) :
-	# to allow usage of numbers
-	key = str(key)
-	# number attributes must be avaible without _ prefix
-	if key.isdigit() :
-		key = '_%s' % key
-	return key
 
 
-(_typeDict, _noTypeDict, _nonItk, _vnl) = _initDict()
+(typeDict, noTypeDict, nonItk, vnl) = initDict()
 
-for _name, _types in _typeDict.iteritems() :
-	exec '%s = _ItkClass(_name, _types)' % _name
+for name, types in typeDict.iteritems() :
+	exec '%s = ItkClass(name, types)' % name
 
-for _name, _funcs in _noTypeDict.iteritems() :
-	exec '%s = _ItkClassNoType(_name, _funcs)' % _name
+for name, funcs in noTypeDict.iteritems() :
+	exec '%s = ItkClassNoType(name, funcs)' % name
 	
-# for _name in _nonItk :
-# 	exec '%s = _InsightToolkit.%s' % (_name, _name)
+# for name in nonItk :
+# 	exec '%s = InsightToolkit.%s' % (name, name)
+
+# remove vars used to create module attribute
+del typeDict, noTypeDict, nonItk, vnl, name, types, funcs
+# the same for classes and modules
+del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit
