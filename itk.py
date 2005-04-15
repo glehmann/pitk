@@ -107,21 +107,33 @@ class ItkClassType :
 			    # I can't understand why, but it don't work in pure functional style: I can't 
 			    # use function() in New defined below :-(
 			    self.__new__ = function
-			    def New(param=None) :
-				# create a new function to manage the parameter
-				if param == None :
-				    # no parameter. Call new function
-				    return self.__new__()
-				elif isinstance(param, str) :
-				    # parameter is a string. Use it as a file name (for ImageFileReader)
-				    ret = self.__new__()
-				    ret.SetFileName(param)
-				    return ret
-				else :
-				    # parameter is not a string. It should be a filter... add it in the pipeline
-				    ret = self.__new__()
-				    ret.SetInput(param.GetOutput())
-				    return ret
+			    def New(*args, **kargs) :
+				# create a new New function to manage the parameter
+				ret = self.__new__()
+				
+				# args without name : use it like we can !
+				for arg in args :
+				    if isinstance(arg, str) :
+					# parameter is a string. Use it as a file name (for ImageFileReader/Writer)
+					# print '%s.SetFileName(%s)' % (str(ret), repr(arg))
+					# print
+					ret.SetFileName(arg)
+				    else :
+					# parameter is not a string. It should be a filter... add it in the pipeline
+					# print '%s.SetInput(%s)' % (str(ret), str(arg))
+					# print
+					ret.SetInput(arg.GetOutput())
+					
+				# named args : name is the function name, value is argument(s)
+				for attrib, value in kargs.iteritems() :
+				    if isinstance(value, dict) :
+					getattr(ret, attrib)(**value)
+				    elif isinstance(value, tuple) :
+					getattr(ret, attrib)(*value)
+				    else :
+					getattr(ret, attrib)(value)
+				
+				return ret
 			    
 			    # finally, set our own New function as self.New
 			    setattr(self, attrib, New)
