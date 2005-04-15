@@ -91,16 +91,44 @@ class ItkClassType :
 	def __init__(self, name, t, funcs) :
 		self.__name__ = name
 		self.__type__ = t
-		self.__function__ = getattr(InsightToolkit, 'itk%s%s' % (name, t))
+		self.__function__ = getattr(InsightToolkit, 'itk%s%s' % (name, t))		
 		for func in funcs :
 			# attribute name must not have _ prefix
 			if func[0] == '_' :
 				attrib = func[1:]
 			else :
 				attrib = func
+				
+			# get the function to add as attribute
 			function = getattr(InsightToolkit, 'itk%s%s%s' % (name, t, func))
-			# add method
-			setattr(self, attrib, function)
+			
+			if attrib == 'New' :
+			    # to make prototyping easier, allow to pass one parameter to New function
+			    # I can't understand why, but it don't work in pure functional style: I can't 
+			    # use function() in New defined below :-(
+			    self.__new__ = function
+			    def New(param=None) :
+				# create a new function to manage the parameter
+				if param == None :
+				    # no parameter. Call new function
+				    return self.__new__()
+				elif isinstance(param, str) :
+				    # parameter is a string. Use it as a file name (for ImageFileReader)
+				    ret = self.__new__()
+				    ret.SetFileName(param)
+				    return ret
+				else :
+				    # parameter is not a string. It should be a filter... add it in the pipeline
+				    ret = self.__new__()
+				    ret.SetInput(param.GetOutput())
+				    return ret
+			    
+			    # finally, set our own New function as self.New
+			    setattr(self, attrib, New)
+			    
+			else :
+			    # add method
+			    setattr(self, attrib, function)
 	
 	def __call__(self, *args, **kargs) :
 		# some types needs to be callable (types without New() method)
