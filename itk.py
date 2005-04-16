@@ -111,6 +111,8 @@ class ItkClassType :
 				# create a new New function to manage the parameter
 				ret = self.__new__()
 				
+				# count SetInput calls to call SetInput, SetInput2, SetInput3, ...
+				setInputNb = 1
 				# args without name : use it like we can !
 				for arg in args :
 				    if isinstance(arg, str) :
@@ -122,7 +124,11 @@ class ItkClassType :
 					# parameter is not a string. It should be a filter... add it in the pipeline
 					# print '%s.SetInput(%s)' % (str(ret), str(arg))
 					# print
-					ret.SetInput(arg.GetOutput())
+					if setInputNb == 1:
+					    ret.SetInput(arg.GetOutput())
+					else :
+					    getattr(ret, 'SetInput%i' % setInputNb)(arg.GetOutput())
+					setInputNb += 1
 					
 				# named args : name is the function name, value is argument(s)
 				for attrib, value in kargs.iteritems() :
