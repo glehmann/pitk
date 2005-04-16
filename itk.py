@@ -228,7 +228,15 @@ class ItkClass :
 		return '<itk class itk.%s>' % self.__name__
 
 			
-
+class VnlClass :
+    """
+    give accex to vnl_ attributes
+    """
+    def __init__(self, names) :
+	for name in names :
+	    function = getattr(InsightToolkit, 'vnl_%s' % name)
+	    setattr(self, name, function)
+							   
 
 (typeDict, noTypeDict, nonItk, vnl) = initDict()
 
@@ -241,7 +249,13 @@ for name, funcs in noTypeDict.iteritems() :
 # for name in nonItk :
 # 	exec '%s = InsightToolkit.%s' % (name, name)
 
+# everything in nonItk is (should be) from SwigExtras sub module
+# make it avaible from itk module
+SwigExtras = InsightToolkit.SwigExtras
+
+vnl = VnlClass(vnl)
+
 # remove vars used to create module attribute
-del typeDict, noTypeDict, nonItk, vnl, name, types, funcs
+del typeDict, noTypeDict, nonItk, name, types, funcs #, vnl
 # the same for classes and modules
-del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit
+del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit, VnlClass
