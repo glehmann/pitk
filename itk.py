@@ -168,7 +168,23 @@ class ItkClassType :
 	def __call__(self, *args, **kargs) :
 		# some types needs to be callable (types without New() method)
 		# as it don't seem to be a problem, make all types callable
-		return self.__function__(*args, **kargs)
+		ret = self.__function__(*args)
+		# named args : name is the function name, value is argument(s)
+		for attribName, value in kargs.iteritems() :
+		    try :
+			# try to get attrib wtih the given name
+			attrib = getattr(ret, attribName)
+		    except AttributeError :
+			# try with Set as prefix.
+			attrib = getattr(ret, 'Set' + attribName)
+		    # now, make the call according to type of the given value
+		    if isinstance(value, dict) :
+			attrib(**value)
+		    elif isinstance(value, tuple) :
+			attrib(*value)
+		    else :
+			attrib(value)
+		return ret
 	
 	def __repr__(self) :
 		return '<itk class type itk.%s<%s>>' % (self.__name__, self.__type__)
@@ -191,7 +207,7 @@ class ItkClassNoType :
 	
 	def __call__(self, *args, **kargs) :
 		return self.__function__(*args, **kargs)
-	
+			    
 	def __repr__(self) :
 		return '<itk class no type itk.%s>' % self.__name__
 
