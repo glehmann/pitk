@@ -111,50 +111,35 @@ class ItkClassType :
 				# create a new New function to manage parameters
 				ret = self.__new__()
 				
-				# args without name : use it like we can !
+				# args without name are filter used to set input image
 				#
 				# count SetInput calls to call SetInput, SetInput2, SetInput3, ...
 				# usefull with filter which take 2 input (or more) like SubstractImageFiler
 				# Ex: substract image2.png to image1.png and save the result in result.png
-				# r1 = itk.ImageFileReader.US2.New('image1.png')
-				# r2 = itk.ImageFileReader.US2.New('image2.png')
+				# r1 = itk.ImageFileReader.US2.New(FileName='image1.png')
+				# r2 = itk.ImageFileReader.US2.New(FileName='image2.png')
 				# s = itk.SubtractImageFilter.US2US2US2.New(r1, r2)
-				# itk.ImageFileWriter.US2.New(s, 'result.png').Update()
-				setInputNb = 1
-				for arg in args :
-				    if isinstance(arg, str) :
-					# parameter is a string. Use it as a file name (for ImageFileReader/Writer)
-					# print '%s.SetFileName(%s)' % (str(ret), repr(arg))
-					# print
-					ret.SetFileName(arg)
-				    else :
-					# parameter is not a string. It should be a filter... add it in the pipeline
-					# print '%s.SetInput(%s)' % (str(ret), str(arg))
-					# print
-					if setInputNb == 1:
-					    ret.SetInput(arg.GetOutput())
+				# itk.ImageFileWriter.US2.New(s, FileName='result.png').Update()
+				for setInputNb, arg  in enumerate(args) :
+					# add filter in the pipeline
+					if setInputNb == 0:
+						ret.SetInput(arg.GetOutput())
 					else :
-					    getattr(ret, 'SetInput%i' % setInputNb)(arg.GetOutput())
-					setInputNb += 1
+						getattr(ret, 'SetInput%i' % (setInputNb+1))(arg.GetOutput())
 					
 				# named args : name is the function name, value is argument(s)
 				for attribName, value in kargs.iteritems() :
-				    try :
-					# try to get attrib wtih the given name
-					attrib = getattr(ret, attribName)
-				    except AttributeError :
-					# hugh, given name fails
-					# try with Set as prefix. It allow to use a shorter and more intuitive
+					# use Set as prefix. It allow to use a shorter and more intuitive
 					# call (Ex: itk.ImageFileReader.UC2.New(FileName='image.png')) than with the
 					# full name (Ex: itk.ImageFileReader.UC2.New(SetFileName='image.png'))
 					attrib = getattr(ret, 'Set' + attribName)
-				    # now, make the call according to type of the given value
-				    if isinstance(value, dict) :
-					attrib(**value)
-				    elif isinstance(value, tuple) :
-					attrib(*value)
-				    else :
-					attrib(value)
+					# now, make the call according to type of the given value
+					if isinstance(value, dict) :
+						attrib(**value)
+					elif isinstance(value, tuple) :
+						attrib(*value)
+					else :
+						attrib(value)
 				
 				return ret
 			    
@@ -171,19 +156,15 @@ class ItkClassType :
 		ret = self.__function__(*args)
 		# named args : name is the function name, value is argument(s)
 		for attribName, value in kargs.iteritems() :
-		    try :
-			# try to get attrib wtih the given name
-			attrib = getattr(ret, attribName)
-		    except AttributeError :
-			# try with Set as prefix.
+			# use Set as prefix (see above).
 			attrib = getattr(ret, 'Set' + attribName)
-		    # now, make the call according to type of the given value
-		    if isinstance(value, dict) :
-			attrib(**value)
-		    elif isinstance(value, tuple) :
-			attrib(*value)
-		    else :
-			attrib(value)
+			# now, make the call according to type of the given value
+			if isinstance(value, dict) :
+				attrib(**value)
+			elif isinstance(value, tuple) :
+				attrib(*value)
+			else :
+				attrib(value)
 		return ret
 	
 	def __repr__(self) :

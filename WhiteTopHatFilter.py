@@ -25,10 +25,8 @@ outType = (outPType, dim)
 
 (inName, outName) = argv[1:]
 
-# String given to New method is the filename
-reader = itk.ImageFileReader[inType].New(inName)
-# note that for more readability we should have written
-# reader = itk.ImageFileReader[inType].New(FileName=inName)
+# set file name on the same line
+reader = itk.ImageFileReader[inType].New(FileName=inName)
 
 # Radius=3 parameter allows to easily create a structuring element with a radius
 # of 3
@@ -53,7 +51,7 @@ sub = itk.SubtractImageFilter[inType*3].New(reader, dilate)
 cast = itk.CastImageFilter[inType, outType].New(sub)
 
 # the string in parameter is the filename, and the filter gives the input image
-writer = itk.ImageFileWriter[outType].New(cast, outName)
+writer = itk.ImageFileWriter[outType].New(cast, FileName=outName)
 
 writer.Update()
 
