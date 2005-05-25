@@ -33,7 +33,7 @@ writer.SetInput( filter.GetOutput() )
 reader.SetFileName( argv[1] )
 writer.SetFileName( argv[2] )
 
-# use type declared above to instanciate itk::Size object
+# use dim declared above to instanciate itk::Size object
 sizeRadius = itk.Size[dim]()
 sizeRadius.SetElement( 0, eval( argv[3] ) )
 sizeRadius.SetElement( 1, eval( argv[3] ) )
