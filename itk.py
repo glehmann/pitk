@@ -22,6 +22,9 @@
 
 import InsightToolkit
 
+# set this variable to True to automatically add an progress display to the newly created
+# filter.
+auto_progress = False
 
 def initDict() :
 	"""
@@ -140,6 +143,24 @@ class ItkClassType :
 						attrib(*value)
 					else :
 						attrib(value)
+				
+				# now, try to add observer to display progress
+				if auto_progress :
+					try :
+						import sys
+						def progress() :
+							clrLine = "\033[2000D\033[K"
+							p = ret.GetProgress()
+							print >> sys.stderr, clrLine+"%s: %f" % (repr(self), p), 
+							if p == 1 :
+								print >> sys.stderr, clrLine, 
+						
+						command = PyCommand.New()
+						command.SetCommandCallable(progress)
+						ret.AddObserver(ProgressEvent(), command.GetPointer())
+					except :
+						# it seems that something goes wrong...
+						pass
 				
 				return ret
 			    
