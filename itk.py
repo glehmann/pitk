@@ -189,7 +189,7 @@ class ItkClassType :
 		return ret
 	
 	def __repr__(self) :
-		return '<itk class type itk.%s<%s>>' % (self.__name__, self.__type__)
+		return '<itk.%s[%s]>' % (self.__name__, self.__type__)
 
 		
 class ItkClassNoType :
@@ -211,7 +211,7 @@ class ItkClassNoType :
 		return self.__function__(*args, **kargs)
 			    
 	def __repr__(self) :
-		return '<itk class no type itk.%s>' % self.__name__
+		return '<itk.%s>' % self.__name__
 
 
 class ItkClass :
@@ -243,7 +243,7 @@ class ItkClass :
 	    return key
 
 	def __repr__(self) :
-		return '<itk class itk.%s>' % self.__name__
+		return '<itk.%s>' % self.__name__
 
 			
 class VnlClass :
