@@ -1,6 +1,11 @@
 #!/usr/bin/env python
-import itk
+
+# check args before loading itk to avoid waste time to load itk when we have
+# wrong number of args
 from sys import argv
+(inName, outName) = argv[1:]
+
+import itk
 
 ###########################################################
 # this script demonstrates usage of itk module facilities
@@ -15,6 +20,9 @@ from sys import argv
 # that's the price for python flexibility
 print 'modules loaded'
 
+# add progress display
+itk.auto_progress = True
+
 # declares types and dim which will be reused in all the pipeline.
 # it allows to to change type (or dim) in a single place
 dim = 2
@@ -22,8 +30,6 @@ inPType = 'US'
 outPType = 'UC'
 inType = (inPType, dim)
 outType = (outPType, dim)
-
-(inName, outName) = argv[1:]
 
 # set file name on the same line
 reader = itk.ImageFileReader[inType].New(FileName=inName)
