@@ -125,10 +125,7 @@ class ItkClassType :
 				# itk.ImageFileWriter.US2.New(s, FileName='result.png').Update()
 				for setInputNb, arg  in enumerate(args) :
 					# add filter in the pipeline
-					if setInputNb == 0:
-						ret.SetInput(arg.GetOutput())
-					else :
-						getattr(ret, 'SetInput%i' % (setInputNb+1))(arg.GetOutput())
+					ret.SetInput(setInputNb, arg.GetOutput())
 					
 				# named args : name is the function name, value is argument(s)
 				for attribName, value in kargs.iteritems() :
