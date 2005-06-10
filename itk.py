@@ -204,6 +204,9 @@ class ItkClassNoType :
 			setattr(self, attrib, function)
 	
 	def __call__(self, *args, **kargs) :
+		# delegate to New to be consistent with vtk python API where New is masked
+		if hasattr(self, 'New') :
+			return self.New(*args, **kargs)
 		return self.__function__(*args, **kargs)
 			    
 	def __repr__(self) :
