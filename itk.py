@@ -123,9 +123,15 @@ class ItkClassType :
 				# r2 = itk.ImageFileReader.US2.New(FileName='image2.png')
 				# s = itk.SubtractImageFilter.US2US2US2.New(r1, r2)
 				# itk.ImageFileWriter.US2.New(s, FileName='result.png').Update()
-				for setInputNb, arg  in enumerate(args) :
-					# add filter in the pipeline
-					ret.SetInput(setInputNb, arg.GetOutput())
+				try :
+					for setInputNb, arg  in enumerate(args) :
+						# add filter in the pipeline
+						ret.SetInput(setInputNb, arg.GetOutput())
+				except TypeError :
+					# ret seems to not accept SetInput(int, image)... try with SetInput(image)
+					ret.SetInput(args[0].GetOutput())
+					if len(args) > 1 :
+						raise TypeError('Object accept only 1 input.')
 					
 				# named args : name is the function name, value is argument(s)
 				for attribName, value in kargs.iteritems() :
@@ -157,6 +163,8 @@ class ItkClassType :
 						ret.AddObserver(ProgressEvent(), command.GetPointer())
 					except :
 						# it seems that something goes wrong...
+						# as this feature is designed for prototyping, it's not really a problem
+						# if an abject  don't have progress reporter, so adding reporter can silently fail
 						pass
 				
 				return ret
