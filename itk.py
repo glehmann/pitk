@@ -106,77 +106,74 @@ class ItkClassType :
 			function = getattr(InsightToolkit, 'itk%s%s%s' % (name, t, func))
 			
 			if attrib == 'New' :
-			    # to make prototyping easier, allow to pass parameter(s) to New function
-			    # I can't understand why, but it don't work in pure functional style: I can't 
-			    # use function() in New defined below :-(
-			    self.__new__ = function
-			    def New(*args, **kargs) :
-				# create a new New function to manage parameters
-				ret = self.__new__()
-				
-				# args without name are filter used to set input image
-				#
-				# count SetInput calls to call SetInput, SetInput2, SetInput3, ...
-				# usefull with filter which take 2 input (or more) like SubstractImageFiler
-				# Ex: substract image2.png to image1.png and save the result in result.png
-				# r1 = itk.ImageFileReader.US2.New(FileName='image1.png')
-				# r2 = itk.ImageFileReader.US2.New(FileName='image2.png')
-				# s = itk.SubtractImageFilter.US2US2US2.New(r1, r2)
-				# itk.ImageFileWriter.US2.New(s, FileName='result.png').Update()
-				try :
-					for setInputNb, arg  in enumerate(args) :
-						# add filter in the pipeline
-						ret.SetInput(setInputNb, arg.GetOutput())
-				except TypeError :
-					# ret seems to not accept SetInput(int, image)... try with SetInput(image)
-					ret.SetInput(args[0].GetOutput())
-					if len(args) > 1 :
-						raise TypeError('Object accept only 1 input.')
+				# to make prototyping easier, allow to pass parameter(s) to New function
+				# I can't understand why, but it don't work in pure functional style: I can't 
+				# use function() in New defined below :-(
+				self.__new__ = function
+				def New(*args, **kargs) :
+					# create a new New function to manage parameters
+					ret = self.__new__()
 					
-				# named args : name is the function name, value is argument(s)
-				for attribName, value in kargs.iteritems() :
-					# use Set as prefix. It allow to use a shorter and more intuitive
-					# call (Ex: itk.ImageFileReader.UC2.New(FileName='image.png')) than with the
-					# full name (Ex: itk.ImageFileReader.UC2.New(SetFileName='image.png'))
-					attrib = getattr(ret, 'Set' + attribName)
-					# now, make the call according to type of the given value
-					if isinstance(value, dict) :
-						attrib(**value)
-					elif isinstance(value, tuple) :
-						attrib(*value)
-					else :
-						attrib(value)
-				
-				# now, try to add observer to display progress
-				if auto_progress :
+					# args without name are filter used to set input image
+					#
+					# count SetInput calls to call SetInput, SetInput2, SetInput3, ...
+					# usefull with filter which take 2 input (or more) like SubstractImageFiler
+					# Ex: substract image2.png to image1.png and save the result in result.png
+					# r1 = itk.ImageFileReader.US2.New(FileName='image1.png')
+					# r2 = itk.ImageFileReader.US2.New(FileName='image2.png')
+					# s = itk.SubtractImageFilter.US2US2US2.New(r1, r2)
+					# itk.ImageFileWriter.US2.New(s, FileName='result.png').Update()
 					try :
-						import sys
-						def progress() :
-							clrLine = "\033[2000D\033[K"
-							p = ret.GetProgress()
-							print >> sys.stderr, clrLine+"%s: %f" % (repr(self), p), 
-							if p == 1 :
-								print >> sys.stderr, clrLine, 
+						for setInputNb, arg  in enumerate(args) :
+							# add filter in the pipeline
+							ret.SetInput(setInputNb, arg.GetOutput())
+					except TypeError :
+						# ret seems to not accept SetInput(int, image)... try with SetInput(image)
+						ret.SetInput(args[0].GetOutput())
+						if len(args) > 1 :
+							raise TypeError('Object accept only 1 input.')
 						
-						command = PyCommand.New()
-						command.SetCommandCallable(progress)
-						ret.AddObserver(ProgressEvent(), command.GetPointer())
-					except :
-						# it seems that something goes wrong...
-						# as this feature is designed for prototyping, it's not really a problem
-						# if an abject  don't have progress reporter, so adding reporter can silently fail
-						pass
+					# named args : name is the function name, value is argument(s)
+					for attribName, value in kargs.iteritems() :
+						# use Set as prefix. It allow to use a shorter and more intuitive
+						# call (Ex: itk.ImageFileReader.UC2.New(FileName='image.png')) than with the
+						# full name (Ex: itk.ImageFileReader.UC2.New(SetFileName='image.png'))
+						attrib = getattr(ret, 'Set' + attribName)
+						attrib(value)
+					
+					# now, try to add observer to display progress
+					if auto_progress :
+						try :
+							import sys
+							def progress() :
+								clrLine = "\033[2000D\033[K"
+								p = ret.GetProgress()
+								print >> sys.stderr, clrLine+"%s: %f" % (repr(self), p), 
+								if p == 1 :
+									print >> sys.stderr, clrLine, 
+							
+							command = PyCommand.New()
+							command.SetCommandCallable(progress)
+							ret.AddObserver(ProgressEvent(), command.GetPointer())
+						except :
+							# it seems that something goes wrong...
+							# as this feature is designed for prototyping, it's not really a problem
+							# if an abject  don't have progress reporter, so adding reporter can silently fail
+							pass
+					
+					return ret
 				
-				return ret
-			    
-			    # finally, set our own New function as self.New
-			    setattr(self, attrib, New)
+				# finally, set our own New function as self.New
+				setattr(self, 'New', New)
 			    
 			else :
-			    # add method
-			    setattr(self, attrib, function)
+				# add method
+				setattr(self, attrib, function)
 	
 	def __call__(self, *args, **kargs) :
+		# delegate to New to be consistent with vtk python API where New is masked
+		if hasattr(self, 'New') :
+			return self.New(*args, **kargs)
 		# some types needs to be callable (types without New() method)
 		# as it don't seem to be a problem, make all types callable
 		ret = self.__function__(*args)
@@ -184,13 +181,7 @@ class ItkClassType :
 		for attribName, value in kargs.iteritems() :
 			# use Set as prefix (see above).
 			attrib = getattr(ret, 'Set' + attribName)
-			# now, make the call according to type of the given value
-			if isinstance(value, dict) :
-				attrib(**value)
-			elif isinstance(value, tuple) :
-				attrib(*value)
-			else :
-				attrib(value)
+			attrib(value)
 		return ret
 	
 	def __repr__(self) :
@@ -240,25 +231,25 @@ class ItkClass :
 			return str(seq) 
 	
 	def __manageDigit__(self, key) :
-	    # to allow usage of numbers
-	    key = str(key)
-	    # number attributes must be avaible without _ prefix
-	    if key.isdigit() :
-		key = '_%s' % key
-	    return key
+		# to allow usage of numbers
+		key = str(key)
+		# number attributes must be avaible without _ prefix
+		if key.isdigit() :
+			key = '_%s' % key
+		return key
 
 	def __repr__(self) :
 		return '<itk.%s>' % self.__name__
 
 			
 class VnlClass :
-    """
-    give accex to vnl_ attributes
-    """
-    def __init__(self, names) :
-	for name in names :
-	    function = getattr(InsightToolkit, 'vnl_%s' % name)
-	    setattr(self, name, function)
+	"""
+	give accex to vnl_ attributes
+	"""
+	def __init__(self, names) :
+		for name in names :
+			function = getattr(InsightToolkit, 'vnl_%s' % name)
+			setattr(self, name, function)
 							   
 
 (typeDict, noTypeDict, nonItk, vnl) = initDict()
