@@ -51,7 +51,11 @@ def initDict() :
 			noTypeRes = noTypeRegexp.findall(f)
 			if typeRes != [] :
 				# type found
-				classes.append(typeRes[0])
+				c, t, func = typeRes[0]
+				if t.startswith('IO') :
+					c += 'IO'
+					t = t[2:] 
+				classes.append([c, t, func])
 			elif noTypeRes != [] :
 				# no type found
 				noType.append(noTypeRes[0])
