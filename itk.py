@@ -274,5 +274,7 @@ vnl = VnlClass(vnl)
 
 # remove vars used to create module attribute
 del typeDict, noTypeDict, nonItk, name, types, funcs #, vnl
-# the same for classes and modules
+# the same for classes and modules ...
 del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit, VnlClass
+# and the initDict function :-)
+del initDict
