@@ -52,9 +52,12 @@ def initDict() :
 			if typeRes != [] :
 				# type found
 				c, t, func = typeRes[0]
-				if t.startswith('IO') :
-					c += 'IO'
-					t = t[2:] 
+				# some classes end with a character in uppercase, and those character are
+				# used as type... correct the few case where we have this problem
+				for ex in ['IO', '2D', '3D'] :
+					if t.startswith(ex) :
+						c += ex
+						t = t[len(ex):] 
 				classes.append([c, t, func])
 			elif noTypeRes != [] :
 				# no type found
