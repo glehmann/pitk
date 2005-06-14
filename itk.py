@@ -21,7 +21,6 @@
 #
 
 import InsightToolkit
-from UserDict import DictMixin
 
 # set this variable to True to automatically add an progress display to the newly created
 # filter.
@@ -221,7 +220,7 @@ class ItkClassNoType :
 		return '<itk.%s>' % self.__name__
 
 
-class ItkClass(DictMixin) :
+class ItkClass :
 	"""
 	This class manage access to avaible types
 	"""
@@ -261,6 +260,41 @@ class ItkClass(DictMixin) :
 		
 	def keys(self) :
 		return self.__types__.keys()
+
+	# second level definitions support higher levels
+	def __iter__(self):
+			for k in self.keys():
+					yield k
+	def has_key(self, key):
+			try:
+					value = self[key]
+			except KeyError:
+					return False
+			return True
+	def __contains__(self, key):
+			return self.has_key(key)
+
+	# third level takes advantage of second level definitions
+	def iteritems(self):
+		for k in self:
+				yield (k, self[k])
+	def iterkeys(self):
+		return self.__iter__()
+	# fourth level uses definitions from lower levels
+	def itervalues(self):
+		for _, v in self.iteritems():
+				yield v
+	def values(self):
+		return [v for _, v in self.iteritems()]
+	def items(self):
+		return list(self.iteritems())
+	def get(self, key, default=None):
+		try:
+				return self[key]
+		except KeyError:
+				return default
+	def __len__(self):
+			return len(self.keys())
 
 			
 class VnlClass :
