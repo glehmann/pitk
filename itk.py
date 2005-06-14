@@ -21,6 +21,7 @@
 #
 
 import InsightToolkit
+from UserDict import DictMixin
 
 # set this variable to True to automatically add an progress display to the newly created
 # filter.
@@ -220,18 +221,25 @@ class ItkClassNoType :
 		return '<itk.%s>' % self.__name__
 
 
-class ItkClass :
+class ItkClass(DictMixin) :
 	"""
 	This class manage access to avaible types
 	"""
 	def __init__(self, name, types) :
+		# the name of the class
 		self.__name__ = name
+		# types of the class
+		self.__types__ = {}
+		
+		# add each type in dict and in attribs
 		for t, funcs in types.iteritems() :
 			attrib = self.__manageDigit__(t)
-			setattr(self, attrib, ItkClassType(name, t, funcs))
-			
+			classType = ItkClassType(name, t, funcs)
+			self.__types__[attrib] = classType
+			setattr(self, attrib, classType)
+	
 	def __getitem__(self, key) :
-		return getattr(self, self.__manageDigit__(self.__seq2str__(key)))
+		return self.__types__[self.__manageDigit__(self.__seq2str__(key))]
 
 	# we don't use staticmethod to be able to mask the method
 	def __seq2str__(self, seq) :
@@ -250,6 +258,9 @@ class ItkClass :
 
 	def __repr__(self) :
 		return '<itk.%s>' % self.__name__
+		
+	def keys(self) :
+		return self.__types__.keys()
 
 			
 class VnlClass :
