@@ -20,7 +20,7 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 
-import InsightToolkit
+import InsightToolkit, sys
 
 # set this variable to True to automatically add an progress display to the newly created
 # filter.
@@ -324,9 +324,17 @@ SwigExtras = InsightToolkit.SwigExtras
 
 vnl = VnlClass(vnl)
 
+# a function to print itk object info
+def Print(itkObject, f=sys.stderr) :
+	ss = StringStream()
+	itkObject.Print(ss.GetStream())
+	print >> f, ss.GetString()
+
 # remove vars used to create module attribute
 del typeDict, noTypeDict, nonItk, name, types, funcs #, vnl
 # the same for classes and modules ...
-del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit, VnlClass
+del ItkClass, ItkClassNoType, ItkClassType, InsightToolkit, VnlClass, sys
 # and the initDict function :-)
 del initDict
+
+	
